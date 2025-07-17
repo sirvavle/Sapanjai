@@ -1,15 +1,20 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 import torch
+from huggingface_hub import hf_hub_download
 
 # --- Configuration ---
 MODEL_NAME = 'distilbert-base-uncased'
-MODEL_SAVE_PATH = 'best_goemotions_model.pt'
+REPO_ID = 'Patzamangajuice/best_goemotions_mode' 
+FILENAME = 'best_goemotions_model.pt'
 MAX_LEN = 32
+
+# --- Download model file from Hugging Face Hub ---
+model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
 
 # --- Load Emotion Classifier ---
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModelForSequenceClassification.from_pretrained(MODEL_NAME, num_labels=28)
-model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location=torch.device('cpu')))
+model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 model.eval()
 
 # --- Load Zero-Shot Classifier for Sensitivity ---

@@ -3,6 +3,4 @@ uvicorn[standard]
 transformers
 torch
 pydantic
-python-multipart  # If you plan to accept form input or uploads
-scikit-learn  # for evaluation or data prep
-aiofiles       # for async file handling (optional)
+huggingface_hub

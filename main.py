@@ -8,8 +8,8 @@ class TextRequest(BaseModel):
     text: str
 
 @app.get("/")
-def read_root():
-    return {"status": "ok"}
+def root():
+    return {"message": "Sapanjai AI is up and running 🚀"}
 
 @app.post("/analyze")
 async def analyze(text_request: TextRequest):

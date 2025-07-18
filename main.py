@@ -8,6 +8,7 @@ class TextRequest(BaseModel):
     text: str
 
 @app.get("/")
+@app.head("/")
 def root():
     return {"message": "Sapanjai AI is up and running 🚀"}
 

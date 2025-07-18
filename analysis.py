@@ -1,3 +1,4 @@
+import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from huggingface_hub import hf_hub_download
 import torch
@@ -9,6 +10,9 @@ EMOTION_MODEL_NAME = 'distilbert-base-uncased'
 REPO_ID = 'Patzamangajuice/best_goemotions_mode'
 FILENAME = 'best_goemotions_model.pt'
 MAX_LEN = 32
+
+# Get HF token from environment variable
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 sensitive_labels = [
     "mental health", "depression", "stress", "suicide", "bullying", "eating disorder",
@@ -37,7 +41,8 @@ neutral_emotions = ['neutral']
 # --- Lazy loaders ---
 @lru_cache()
 def get_emotion_model():
-    model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME)
+    # Pass token for private repo access
+    model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME, token=HF_TOKEN)
     model = AutoModelForSequenceClassification.from_pretrained(EMOTION_MODEL_NAME, num_labels=28)
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
@@ -64,7 +69,7 @@ def predict_emotion(text: str):
         outputs = model(**inputs)
         logits = outputs.logits
         probs = torch.sigmoid(logits).squeeze().cpu().numpy()
-    
+
     emotion_probs = [(emotions[i], float(probs[i])) for i in range(len(emotions))]
     emotion_probs.sort(key=lambda x: x[1], reverse=True)
     return emotion_probs

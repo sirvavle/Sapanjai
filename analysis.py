@@ -1,4 +1,5 @@
 import os
+from typing import Tuple, Dict, Any, List
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from huggingface_hub import hf_hub_download
 import torch
@@ -36,8 +37,9 @@ negative_emotions = [
 ]
 neutral_emotions = ['neutral']
 
-# --- Init functions for FastAPI lifespan ---
-def load_emotion_model():
+
+# --- Load models once ---
+def load_emotion_model() -> Tuple[AutoModelForSequenceClassification, AutoTokenizer]:
     model_path = hf_hub_download(
         repo_id=REPO_ID,
         filename=FILENAME,
@@ -45,12 +47,13 @@ def load_emotion_model():
         cache_dir="/tmp/models"
     )
     model = AutoModelForSequenceClassification.from_pretrained(
-        EMOTION_MODEL_NAME, num_labels=28, cache_dir="/tmp/models"
+        EMOTION_MODEL_NAME, num_labels=len(emotions), cache_dir="/tmp/models"
     )
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
     tokenizer = AutoTokenizer.from_pretrained(EMOTION_MODEL_NAME, cache_dir="/tmp/models")
     return model, tokenizer
+
 
 def load_zero_shot_classifier():
     return pipeline(
@@ -61,7 +64,7 @@ def load_zero_shot_classifier():
 
 
 # --- Core Logic ---
-def predict_emotion(text: str, model, tokenizer):
+def predict_emotion(text: str, model: AutoModelForSequenceClassification, tokenizer: AutoTokenizer) -> List[Tuple[str, float]]:
     inputs = tokenizer.encode_plus(
         text,
         add_special_tokens=True,
@@ -80,12 +83,14 @@ def predict_emotion(text: str, model, tokenizer):
     emotion_probs.sort(key=lambda x: x[1], reverse=True)
     return emotion_probs
 
-def compute_sentiment_score(emotion_probs):
+
+def compute_sentiment_score(emotion_probs: List[Tuple[str, float]]) -> float:
     positive_score = sum(prob for emotion, prob in emotion_probs if emotion in positive_emotions)
     negative_score = sum(prob for emotion, prob in emotion_probs if emotion in negative_emotions)
     return positive_score - negative_score
 
-def get_sentiment_level(score):
+
+def get_sentiment_level(score: float) -> str:
     if score > 0.7:
         return "green"
     elif 0 < score <= 0.7:
@@ -95,7 +100,8 @@ def get_sentiment_level(score):
     else:
         return "red"
 
-def detect_sensitivity(text: str, sentiment_score: float, zero_shot):
+
+def detect_sensitivity(text: str, sentiment_score: float, zero_shot) -> Tuple[str, str, int]:
     result = zero_shot(text, candidate_labels=sensitive_labels)
     top_label = result['labels'][0]
 
@@ -113,7 +119,8 @@ def detect_sensitivity(text: str, sentiment_score: float, zero_shot):
 
     return top_label, sensitivity_warning, trigger
 
-def analyze_text(text: str, model, tokenizer, zero_shot):
+
+def analyze_text(text: str, model, tokenizer, zero_shot) -> Dict[str, Any]:
     print(f"🔍 Analyzing: {text}")
     emotion_probs = predict_emotion(text, model, tokenizer)
     sentiment_score = compute_sentiment_score(emotion_probs)

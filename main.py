@@ -4,6 +4,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from analysis import analyze_text, load_emotion_model, load_zero_shot_classifier
 from contextlib import asynccontextmanager
 import time
+import os
+import uvicorn
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -54,3 +56,8 @@ async def analyze(text_request: TextRequest):
     except Exception as e:
         print(f"❌ Error during analysis: {e}")
         return {"error": "Analysis failed", "details": str(e)}
+ 
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 8000))  # Render's port or fallback
+    uvicorn.run("main:app", host="0.0.0.0", port=port)

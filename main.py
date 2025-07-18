@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+"""from fastapi import FastAPI
 from pydantic import BaseModel
 from analysis import analyze_text  # ← your refactored logic
 from fastapi.middleware.cors import CORSMiddleware
@@ -43,3 +43,12 @@ async def analyze(text_request: TextRequest):
     except Exception as e:
         print(f"❌ Error during analysis: {e}")
         return {"error": "Analysis failed", "details": str(e)}
+"""
+
+from fastapi import FastAPI
+
+app = FastAPI()
+
+@app.get("/")
+def root():
+    return {"message": "Hello, world!"}

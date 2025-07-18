@@ -17,6 +17,15 @@ app.add_middleware(
 class TextRequest(BaseModel):
     text: str
 
+
+@app.on_event("startup")
+async def startup_event():
+    print("🚀 Application startup")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    print("🛑 Application shutdown")
+    
 @app.get("/")
 @app.head("/")
 def root():

@@ -38,15 +38,29 @@ neutral_emotions = ['neutral']
 
 # --- Init functions for FastAPI lifespan ---
 def load_emotion_model():
-    model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME, token=HF_TOKEN)
-    model = AutoModelForSequenceClassification.from_pretrained(EMOTION_MODEL_NAME, num_labels=28)
+    model_path = hf_hub_download(
+        repo_id=REPO_ID,
+        filename=FILENAME,
+        token=HF_TOKEN,
+        cache_dir="/app/models"   # Cache models on Render
+    )
+    model = AutoModelForSequenceClassification.from_pretrained(
+        EMOTION_MODEL_NAME, num_labels=28
+    )
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
     model.eval()
-    tokenizer = AutoTokenizer.from_pretrained(EMOTION_MODEL_NAME)
+    tokenizer = AutoTokenizer.from_pretrained(
+        EMOTION_MODEL_NAME,
+        cache_dir="/app/models"
+    )
     return model, tokenizer
 
 def load_zero_shot_classifier():
-    return pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
+    return pipeline(
+        "zero-shot-classification",
+        model=SENSITIVITY_MODEL_NAME,
+        cache_dir="/app/models"  # Cache zero-shot model files on Render
+    )
 
 # --- Core Logic ---
 def predict_emotion(text: str, model, tokenizer):

@@ -8,6 +8,7 @@ import time
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Application startup")
+    # Load models once on startup and store in app state
     emotion_model, emotion_tokenizer = load_emotion_model()
     zero_shot = load_zero_shot_classifier()
     app.state.emotion_model = emotion_model
@@ -18,7 +19,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
-# CORS setup — allow all (adjust in production)
+# CORS setup — allow all origins; restrict in production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

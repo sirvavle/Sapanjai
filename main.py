@@ -8,7 +8,6 @@ import time
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Application startup")
-    # Preload and store models in app state
     emotion_model, emotion_tokenizer = load_emotion_model()
     zero_shot = load_zero_shot_classifier()
     app.state.emotion_model = emotion_model
@@ -31,13 +30,11 @@ app.add_middleware(
 class TextRequest(BaseModel):
     text: str
 
-# --- Health Check ---
 @app.get("/")
 @app.head("/")
 def root():
     return {"message": "Sapanjai AI is up and running 🚀"}
 
-# --- Main route ---
 @app.post("/analyze")
 async def analyze(text_request: TextRequest):
     try:

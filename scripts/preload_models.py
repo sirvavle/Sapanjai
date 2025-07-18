@@ -1,21 +1,16 @@
-import os
 from huggingface_hub import hf_hub_download
+import os
+
+# Override HF home to avoid /app permission errors
+os.environ["HF_HOME"] = "/tmp"
 
 HF_TOKEN = os.getenv("HF_TOKEN")
 
-print("📦 Preloading emotion model...")
-hf_hub_download(
+model_path = hf_hub_download(
     repo_id="Patzamangajuice/best_goemotions_mode",
     filename="best_goemotions_model.pt",
     token=HF_TOKEN,
-    cache_dir="/app/models"
+    cache_dir="/tmp/models"
 )
 
-print("📦 Preloading zero-shot model (config only)...")
-hf_hub_download(
-    repo_id="facebook/bart-large-mnli",
-    filename="config.json",
-    cache_dir="/app/models"
-)
-
-print("✅ Models downloaded and cached.")
+print(f"✅ Emotion model preloaded to {model_path}")

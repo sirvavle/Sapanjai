@@ -1,16 +1,19 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from analysis import analyze_text, get_emotion_model, get_zero_shot_classifier
+from analysis import analyze_text, load_emotion_model, load_zero_shot_classifier
 from contextlib import asynccontextmanager
 import time
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Application startup")
-    # Preload models so first request isn't slow
-    _ = get_emotion_model()
-    _ = get_zero_shot_classifier()
+    # Preload and store models in app state
+    emotion_model, emotion_tokenizer = load_emotion_model()
+    zero_shot = load_zero_shot_classifier()
+    app.state.emotion_model = emotion_model
+    app.state.emotion_tokenizer = emotion_tokenizer
+    app.state.zero_shot = zero_shot
     yield
     print("🛑 Application shutdown")
 
@@ -40,7 +43,12 @@ async def analyze(text_request: TextRequest):
     try:
         print(f"📩 Received: {text_request.text}")
         start = time.time()
-        result = analyze_text(text_request.text)
+        result = analyze_text(
+            text=text_request.text,
+            model=app.state.emotion_model,
+            tokenizer=app.state.emotion_tokenizer,
+            zero_shot=app.state.zero_shot,
+        )
         end = time.time()
         print(f"✅ Analysis result: {result}")
         print(f"⏱ Analyze took {end - start:.2f} seconds")

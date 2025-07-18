@@ -2,7 +2,6 @@ import os
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
 from huggingface_hub import hf_hub_download
 import torch
-from functools import lru_cache
 
 # --- Constants ---
 SENSITIVITY_MODEL_NAME = 'facebook/bart-large-mnli'
@@ -11,7 +10,6 @@ REPO_ID = 'Patzamangajuice/best_goemotions_mode'
 FILENAME = 'best_goemotions_model.pt'
 MAX_LEN = 32
 
-# Get HF token from environment variable
 HF_TOKEN = os.getenv("HF_TOKEN")
 
 sensitive_labels = [
@@ -38,10 +36,8 @@ negative_emotions = [
 ]
 neutral_emotions = ['neutral']
 
-# --- Lazy loaders ---
-@lru_cache()
-def get_emotion_model():
-    # Pass token for private repo access
+# --- Init functions for FastAPI lifespan ---
+def load_emotion_model():
     model_path = hf_hub_download(repo_id=REPO_ID, filename=FILENAME, token=HF_TOKEN)
     model = AutoModelForSequenceClassification.from_pretrained(EMOTION_MODEL_NAME, num_labels=28)
     model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
@@ -49,13 +45,11 @@ def get_emotion_model():
     tokenizer = AutoTokenizer.from_pretrained(EMOTION_MODEL_NAME)
     return model, tokenizer
 
-@lru_cache()
-def get_zero_shot_classifier():
+def load_zero_shot_classifier():
     return pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
 
 # --- Core Logic ---
-def predict_emotion(text: str):
-    model, tokenizer = get_emotion_model()
+def predict_emotion(text: str, model, tokenizer):
     inputs = tokenizer.encode_plus(
         text,
         add_special_tokens=True,
@@ -89,8 +83,7 @@ def get_sentiment_level(score):
     else:
         return "red"
 
-def detect_sensitivity(text: str, sentiment_score: float):
-    zero_shot = get_zero_shot_classifier()
+def detect_sensitivity(text: str, sentiment_score: float, zero_shot):
     result = zero_shot(text, candidate_labels=sensitive_labels)
     top_label = result['labels'][0]
 
@@ -108,12 +101,12 @@ def detect_sensitivity(text: str, sentiment_score: float):
 
     return top_label, sensitivity_warning, trigger
 
-def analyze_text(text: str):
+def analyze_text(text: str, model, tokenizer, zero_shot):
     print(f"🔍 Analyzing: {text}")
-    emotion_probs = predict_emotion(text)
+    emotion_probs = predict_emotion(text, model, tokenizer)
     sentiment_score = compute_sentiment_score(emotion_probs)
     sentiment_level = get_sentiment_level(sentiment_score)
-    top_label, sensitivity_warning, trigger = detect_sensitivity(text, sentiment_score)
+    top_label, sensitivity_warning, trigger = detect_sensitivity(text, sentiment_score, zero_shot)
 
     if trigger == 1 and sentiment_score < 0:
         final = f"RED: Message most likely to be sensitive (topics regarding {top_label}). A rewrite is strongly suggested."

@@ -76,13 +76,13 @@ def compute_sentiment_score(emotion_probs):
 
 def get_sentiment_level(score):
     if score > 0.7:
-        return "GREEN - Positive"
+        return "green" #GREEN - Positive
     elif 0 < score <= 0.7:
-        return "YELLOW - Possibly Negative"
+        return "yellow" #YELLOW - Possibly Negative
     elif -0.7 <= score < 0:
-        return "ORANGE - Most likely Negative"
+        return "orange" #ORANGE - Most likely Negative
     else:
-        return "RED - Negative"
+        return "red" #RED - Negative
 
 def detect_sensitivity(text: str, sentiment_score: float):
     result = zero_shot_classifier(text, candidate_labels=sensitive_labels)
@@ -119,11 +119,7 @@ def analyze_text(text: str):
         final = "GREEN: Message likely to be safe."
 
     return {
-        "top_emotions": emotion_probs[:5],
-        "sentiment_score": sentiment_score,
         "sentiment_level": sentiment_level,
-        "sensitive_label_match": top_label,
-        "sensitivity_warning": sensitivity_warning,
         "final_advice": final,
     }
 

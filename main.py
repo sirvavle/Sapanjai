@@ -1,15 +1,11 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from analysis import analyze_text, init_models
+from analysis import analyze_text  # init_models ไม่จำเป็นแล้ว
 
 app = FastAPI()
 
 class TextRequest(BaseModel):
     text: str
-
-@app.on_event("startup")
-async def startup_event():
-    init_models()
 
 @app.post("/analyze")
 async def analyze(text_request: TextRequest):

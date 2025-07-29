@@ -1,10 +1,13 @@
 from transformers import AutoTokenizer, BertForSequenceClassification, pipeline
 import torch
+import numpy as np
 
 # Constants
-GOEMOTIONS_MODEL_NAME = 'Patzamangajuice/best_goemotions_mode'
+MODEL_PATH = './best_goemotions_model.pt'  # เปลี่ยนเป็น path จริงของไฟล์ .pt ที่คุณมี
+TOKENIZER_NAME = 'monologg/bert-base-cased-goemotions-original'
 SENSITIVITY_MODEL_NAME = 'facebook/bart-large-mnli'
 MAX_LEN = 32
+NUM_LABELS = 28  # จำนวน label ของ GoEmotions
 
 # Sensitive topics
 sensitive_labels = [
@@ -17,7 +20,7 @@ critical_sensitive = {
     "eating disorder", "self-harm", "grief", "loss of loved one", "domestic violence"
 }
 
-# Emotion labels
+# Emotion labels (28 labels GoEmotions)
 emotions = [
     'admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring',
     'confusion', 'curiosity', 'desire', 'disappointment', 'disapproval',
@@ -35,33 +38,36 @@ negative_emotions = [
     'embarrassment', 'fear', 'grief', 'nervousness', 'remorse', 'sadness', 'surprise'
 ]
 
-# Load models once at startup
-print("Loading tokenizer and models...")
-tokenizer = AutoTokenizer.from_pretrained(GOEMOTIONS_MODEL_NAME)
-model = BertForSequenceClassification.from_pretrained(GOEMOTIONS_MODEL_NAME)
+print("Loading tokenizer and model...")
+tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_NAME)
+
+# สร้างโมเดล architecture แล้วโหลดน้ำหนักจากไฟล์ .pt
+model = BertForSequenceClassification.from_pretrained('bert-base-cased', num_labels=NUM_LABELS)
+state_dict = torch.load(MODEL_PATH, map_location=torch.device('cpu'))
+model.load_state_dict(state_dict)
 model.eval()
+
 zero_shot_classifier = pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
 print("Models loaded successfully.")
 
 def analyze_text(text: str):
     # Tokenize input text
-    inputs = tokenizer.encode_plus(
+    inputs = tokenizer(
         text,
         add_special_tokens=True,
         max_length=MAX_LEN,
         padding='max_length',
         truncation=True,
-        return_attention_mask=True,
-        return_tensors='pt',
+        return_tensors='pt'
     )
-    # Run model inference
+
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits
-        probs = torch.sigmoid(logits).squeeze().cpu().numpy()
+        probs = torch.sigmoid(logits).squeeze().numpy()
 
     # Pair emotions with probabilities and sort descending
-    emotion_probs = [(emotions[i], float(probs[i])) for i in range(len(emotions))]
+    emotion_probs = list(zip(emotions, probs))
     emotion_probs.sort(key=lambda x: x[1], reverse=True)
 
     # Calculate sentiment score
@@ -88,14 +94,12 @@ def analyze_text(text: str):
         sentiment_level = "green"
         final_advice = "GREEN: Message likely to be safe."
 
-    # Return analysis result
     return {
         "sentiment_level": sentiment_level,
         "final_advice": final_advice,
         "top_emotions": emotion_probs[:5]  # top 5 emotions
     }
 
-# Example usage
 if __name__ == "__main__":
     sample_text = "I feel very sad and stressed about the situation."
     result = analyze_text(sample_text)

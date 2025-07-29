@@ -7,6 +7,8 @@ WORKDIR /app
 # Copy requirements first for caching
 COPY requirements.txt .
 
+COPY best_goemotions_model.pt ./ 
+
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 

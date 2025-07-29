@@ -1,4 +1,4 @@
-from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipeline
+from transformers import AutoTokenizer, BertForSequenceClassification, pipeline
 import torch
 
 # Constants
@@ -38,7 +38,7 @@ negative_emotions = [
 # Load models once at startup
 print("Loading tokenizer and models...")
 tokenizer = AutoTokenizer.from_pretrained(GOEMOTIONS_MODEL_NAME)
-model = AutoModelForSequenceClassification.from_pretrained(GOEMOTIONS_MODEL_NAME)
+model = BertForSequenceClassification.from_pretrained(GOEMOTIONS_MODEL_NAME)
 model.eval()
 zero_shot_classifier = pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
 print("Models loaded successfully.")

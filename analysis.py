@@ -2,9 +2,8 @@ from transformers import AutoTokenizer, AutoModelForSequenceClassification, pipe
 import torch
 
 # Constants
-SENTIMENT_MODEL_NAME = 'distilbert-base-uncased'
+GOEMOTIONS_MODEL_NAME = 'Patzamangajuice/best_goemotions_mode'
 SENSITIVITY_MODEL_NAME = 'facebook/bart-large-mnli'
-MODEL_SAVE_PATH = 'best_goemotions_model.pt'
 MAX_LEN = 32
 
 sensitive_labels = [
@@ -42,11 +41,8 @@ zero_shot_classifier = None
 def init_models():
     global tokenizer, model, zero_shot_classifier
 
-    tokenizer = AutoTokenizer.from_pretrained(SENTIMENT_MODEL_NAME)
-    model = AutoModelForSequenceClassification.from_pretrained(
-        SENTIMENT_MODEL_NAME, num_labels=len(emotions)
-    )
-    model.load_state_dict(torch.load(MODEL_SAVE_PATH, map_location="cpu"))
+    tokenizer = AutoTokenizer.from_pretrained(GOEMOTIONS_MODEL_NAME)
+    model = AutoModelForSequenceClassification.from_pretrained(GOEMOTIONS_MODEL_NAME)
     model.eval()
 
     zero_shot_classifier = pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
@@ -96,5 +92,6 @@ def analyze_text(text: str):
 
     return {
         "sentiment_level": sentiment_level,
-        "final_advice": final_advice
+        "final_advice": final_advice,
+        "top_emotions": emotion_probs[:5]
     }

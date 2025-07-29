@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-from Sapanjai.analysis import analyze_text, init_models
+from analysis import analyze_text, init_models
 
 app = FastAPI()
 

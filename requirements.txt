@@ -4,4 +4,4 @@ torch==2.2.2
 transformers
 sentencepiece
 pydantic
-numpy>=1.24.0
+numpy==1.24.4

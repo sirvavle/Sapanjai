@@ -1,12 +1,10 @@
 from transformers import AutoTokenizer, DistilBertForSequenceClassification, pipeline
 import torch
 
-# Constants
 CHECKPOINT_PATH = "/app/checkpoints/best_goemotions_model.pt"
 NUM_EMOTIONS = 28
 MAX_LEN = 32
 
-# Labels and sets
 sensitive_labels = [
     "mental health", "depression", "stress", "suicide", "bullying", "eating disorder",
     "self-harm", "grief", "loss of loved one", "domestic violence",
@@ -16,7 +14,6 @@ critical_sensitive = {
     "mental health", "depression", "stress", "suicide", "bullying",
     "eating disorder", "self-harm", "grief", "loss of loved one", "domestic violence"
 }
-
 emotions = [
     'admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring',
     'confusion', 'curiosity', 'desire', 'disappointment', 'disapproval',
@@ -24,7 +21,6 @@ emotions = [
     'joy', 'love', 'nervousness', 'optimism', 'pride', 'realization',
     'relief', 'remorse', 'sadness', 'surprise', 'neutral'
 ]
-
 positive_emotions = [
     'amusement', 'joy', 'approval', 'caring', 'curiosity', 'excitement',
     'gratitude', 'love', 'optimism', 'pride', 'realization', 'relief'
@@ -34,28 +30,27 @@ negative_emotions = [
     'embarrassment', 'fear', 'grief', 'nervousness', 'remorse', 'sadness', 'surprise'
 ]
 
-# Globals
 tokenizer = None
 model = None
 zero_shot_classifier = None
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def init_models():
     global tokenizer, model, zero_shot_classifier
 
-    # Load tokenizer & model
     tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = DistilBertForSequenceClassification.from_pretrained(
-        "distilbert-base-uncased",
-        num_labels=NUM_EMOTIONS
+        "distilbert-base-uncased", num_labels=NUM_EMOTIONS
     )
-
-    # Load checkpoint from local path
-    state_dict = torch.load(CHECKPOINT_PATH, map_location="cpu")
+    state_dict = torch.load(CHECKPOINT_PATH, map_location=device)
     model.load_state_dict(state_dict)
-    model.eval()
+    model.eval().to(device)
 
-    # Load zero-shot classifier
-    zero_shot_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+    zero_shot_classifier = pipeline(
+        "zero-shot-classification",
+        model="facebook/bart-large-mnli",
+        device=0 if torch.cuda.is_available() else -1
+    )
 
 def analyze_text(text: str):
     inputs = tokenizer.encode_plus(
@@ -67,6 +62,8 @@ def analyze_text(text: str):
         return_attention_mask=True,
         return_tensors='pt',
     )
+    inputs = {k: v.to(device) for k, v in inputs.items()}
+
     with torch.no_grad():
         outputs = model(**inputs)
         logits = outputs.logits

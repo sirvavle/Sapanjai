@@ -1,14 +1,12 @@
 from transformers import AutoTokenizer, DistilBertForSequenceClassification, pipeline
 import torch
-import os
 
 # Constants
-CHECKPOINT_FILENAME = "best_goemotions_model.pt"
-CHECKPOINT_PATH = os.path.join("checkpoints", CHECKPOINT_FILENAME)
-SENSITIVITY_MODEL_NAME = "facebook/bart-large-mnli"
-MAX_LEN = 32
+CHECKPOINT_PATH = "/app/checkpoints/best_goemotions_model.pt"
 NUM_EMOTIONS = 28
+MAX_LEN = 32
 
+# Labels and sets
 sensitive_labels = [
     "mental health", "depression", "stress", "suicide", "bullying", "eating disorder",
     "self-harm", "grief", "loss of loved one", "domestic violence",
@@ -18,6 +16,7 @@ critical_sensitive = {
     "mental health", "depression", "stress", "suicide", "bullying",
     "eating disorder", "self-harm", "grief", "loss of loved one", "domestic violence"
 }
+
 emotions = [
     'admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring',
     'confusion', 'curiosity', 'desire', 'disappointment', 'disapproval',
@@ -25,6 +24,7 @@ emotions = [
     'joy', 'love', 'nervousness', 'optimism', 'pride', 'realization',
     'relief', 'remorse', 'sadness', 'surprise', 'neutral'
 ]
+
 positive_emotions = [
     'amusement', 'joy', 'approval', 'caring', 'curiosity', 'excitement',
     'gratitude', 'love', 'optimism', 'pride', 'realization', 'relief'
@@ -42,21 +42,20 @@ zero_shot_classifier = None
 def init_models():
     global tokenizer, model, zero_shot_classifier
 
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased", local_files_only=True)
+    # Load tokenizer & model
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
     model = DistilBertForSequenceClassification.from_pretrained(
         "distilbert-base-uncased",
-        num_labels=NUM_EMOTIONS,
-        local_files_only=True
+        num_labels=NUM_EMOTIONS
     )
+
+    # Load checkpoint from local path
     state_dict = torch.load(CHECKPOINT_PATH, map_location="cpu")
     model.load_state_dict(state_dict)
     model.eval()
 
-    zero_shot_classifier = pipeline(
-        "zero-shot-classification",
-        model=SENSITIVITY_MODEL_NAME,
-        tokenizer=SENSITIVITY_MODEL_NAME
-    )
+    # Load zero-shot classifier
+    zero_shot_classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 def analyze_text(text: str):
     inputs = tokenizer.encode_plus(

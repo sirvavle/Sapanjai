@@ -1,17 +1,14 @@
 from transformers import AutoTokenizer, DistilBertForSequenceClassification, pipeline
 import torch
-from huggingface_hub import hf_hub_download
+import os
 
 # Constants
-MODEL_REPO = "Patzamangajuice/best_goemotions_mode"
 CHECKPOINT_FILENAME = "best_goemotions_model.pt"
+CHECKPOINT_PATH = os.path.join("checkpoints", CHECKPOINT_FILENAME)
 SENSITIVITY_MODEL_NAME = "facebook/bart-large-mnli"
 MAX_LEN = 32
-
-# Emotion labels count (must match your trained model)
 NUM_EMOTIONS = 28
 
-# Sensitive labels and critical sensitive sets (your original lists)
 sensitive_labels = [
     "mental health", "depression", "stress", "suicide", "bullying", "eating disorder",
     "self-harm", "grief", "loss of loved one", "domestic violence",
@@ -21,7 +18,6 @@ critical_sensitive = {
     "mental health", "depression", "stress", "suicide", "bullying",
     "eating disorder", "self-harm", "grief", "loss of loved one", "domestic violence"
 }
-
 emotions = [
     'admiration', 'amusement', 'anger', 'annoyance', 'approval', 'caring',
     'confusion', 'curiosity', 'desire', 'disappointment', 'disapproval',
@@ -29,7 +25,6 @@ emotions = [
     'joy', 'love', 'nervousness', 'optimism', 'pride', 'realization',
     'relief', 'remorse', 'sadness', 'surprise', 'neutral'
 ]
-
 positive_emotions = [
     'amusement', 'joy', 'approval', 'caring', 'curiosity', 'excitement',
     'gratitude', 'love', 'optimism', 'pride', 'realization', 'relief'
@@ -47,25 +42,21 @@ zero_shot_classifier = None
 def init_models():
     global tokenizer, model, zero_shot_classifier
 
-    # Download checkpoint from HF Hub
-    checkpoint_path = hf_hub_download(repo_id=MODEL_REPO, filename=CHECKPOINT_FILENAME)
-
-    # Load tokenizer from pretrained base model
-    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
-
-    # Initialize model architecture with the number of emotion labels
+    tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased", local_files_only=True)
     model = DistilBertForSequenceClassification.from_pretrained(
         "distilbert-base-uncased",
-        num_labels=NUM_EMOTIONS
+        num_labels=NUM_EMOTIONS,
+        local_files_only=True
     )
-
-    # Load your fine-tuned weights from checkpoint
-    state_dict = torch.load(checkpoint_path, map_location="cpu")
+    state_dict = torch.load(CHECKPOINT_PATH, map_location="cpu")
     model.load_state_dict(state_dict)
     model.eval()
 
-    # Load zero-shot classifier pipeline
-    zero_shot_classifier = pipeline("zero-shot-classification", model=SENSITIVITY_MODEL_NAME)
+    zero_shot_classifier = pipeline(
+        "zero-shot-classification",
+        model=SENSITIVITY_MODEL_NAME,
+        tokenizer=SENSITIVITY_MODEL_NAME
+    )
 
 def analyze_text(text: str):
     inputs = tokenizer.encode_plus(

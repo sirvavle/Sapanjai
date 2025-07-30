@@ -5,3 +5,4 @@ transformers
 sentencepiece
 pydantic
 numpy==1.24.4
+huggingface_hub
